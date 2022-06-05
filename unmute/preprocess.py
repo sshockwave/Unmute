@@ -1,5 +1,6 @@
 from pathlib import Path
 import torch
+import numpy as np
 from tqdm import tqdm
 import cv2 as cv
 
@@ -34,9 +35,10 @@ def read_video(path: Path, face_cascade, data_list):
             face = frame_gray[y:y+h, x:x+w]
         face = cv.resize(face, (face_cols, face_rows))
         face_list.append(face)
+    face_list = np.stack(face_list, axis=0)
     margin = window_size // 2
-    for i in range(margin, len(face_list) - margin):
-        data_list.append(torch.tensor(face_list[i-margin: i+margin]))
+    for i in range(margin, len(face_list) - 1 - margin):
+        data_list.append(torch.tensor(face_list[i-margin: i+margin+1]))
 
 def process_videos(data_path, save_path):
     data_path, save_path = Path(data_path), Path(save_path)
@@ -45,10 +47,8 @@ def process_videos(data_path, save_path):
     data_list = []
     for f in tqdm(list(data_path.iterdir())):
         read_video(f, face_cascade, data_list)
-    return data_list
-    r"""
-    fourcc = cv.VideoWriter_fourcc(*'mp4v')
-    out = cv.VideoWriter('output.mp4', fourcc, 24, (face_cols, face_rows))
-    for frame in data_list:
-        out.write(frame)
-    """
+    print(data_list[0].shape)
+    torch.save(data_list, save_path)
+
+if __name__ == '__main__':
+    process_videos('./data', './processed_data.pt')
