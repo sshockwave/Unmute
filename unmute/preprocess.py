@@ -6,6 +6,9 @@ import cv2 as cv
 cascade_file = 'haarcascade_frontalface_alt.xml'
 face_rows = 128
 face_cols = 128
+window_size = 9
+channel_cnt = 1 # gray scale
+pool_size = 2
 
 def read_video(path: Path, face_cascade, data_list):
     # See https://docs.opencv.org/4.x/dd/d43/tutorial_py_video_display.html
@@ -27,12 +30,13 @@ def read_video(path: Path, face_cascade, data_list):
         )
         if len(faces) != 1:
             tqdm.write(f'[ERROR] {len(faces)} faces detected in {path} (frame {frame_id})')
-            pass
         for (x, y, w, h) in faces:
-            face = frame[y:y+h, x:x+w]
+            face = frame_gray[y:y+h, x:x+w]
         face = cv.resize(face, (face_cols, face_rows))
-        # face_list.append(face)
-        data_list.append(face)
+        face_list.append(face)
+    margin = window_size // 2
+    for i in range(margin, len(face_list) - margin):
+        data_list.append(torch.tensor(face_list[i-margin: i+margin]))
 
 def process_videos(data_path, save_path):
     data_path, save_path = Path(data_path), Path(save_path)
@@ -41,8 +45,10 @@ def process_videos(data_path, save_path):
     data_list = []
     for f in tqdm(list(data_path.iterdir())):
         read_video(f, face_cascade, data_list)
+    return data_list
+    r"""
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
-    # TODO: save as torch tensor
     out = cv.VideoWriter('output.mp4', fourcc, 24, (face_cols, face_rows))
     for frame in data_list:
         out.write(frame)
+    """
