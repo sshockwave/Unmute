@@ -1,5 +1,4 @@
 from pathlib import Path
-import torch
 import numpy as np
 from tqdm import tqdm
 import cv2 as cv
@@ -10,11 +9,13 @@ face_cols = 128
 window_size = 9
 channel_cnt = 1 # gray scale
 pool_size = 2
+fps = 25
 
 def read_video(path: Path, face_cascade):
     # See https://docs.opencv.org/4.x/dd/d43/tutorial_py_video_display.html
     cap = cv.VideoCapture(path.as_posix())
     face_list = []
+    assert cap.get(cv.CAP_PROP_FPS) == fps
     pbar = tqdm(total=int(cap.get(cv.CAP_PROP_FRAME_COUNT)))
     pbar.set_description_str(path.as_posix())
     frame_id = -1
@@ -49,29 +50,32 @@ def read_video(path: Path, face_cascade):
     face_list = np.stack(face_list, axis=0)
     return face_list
 
-def gen_data(vid, aud, vid_data_list=[], aud_data_list=[]):
-    n = min(len(vid), len(aud)) # num frames
-    margin = window_size // 2
-    for i in range(margin, n - margin):
-        vid_data_list.append(vid[i-margin: i+margin+1])
-    aud_data_list.append(aud[margin:n-margin])
-    return vid_data_list, aud_data_list
-
 def process_videos(data_path, save_path):
     data_path, save_path = Path(data_path), Path(save_path)
     cascade_file_path = Path(__file__).parent / cascade_file
     face_cascade = cv.CascadeClassifier(cascade_file_path.as_posix())
-    vid_data_list = []
-    aud_data_list = []
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+    fourcc = cv.VideoWriter_fourcc(*'mp4v')
+    vid_writer = cv.VideoWriter((save_path / 'video.mp4').as_posix(), fourcc, fps, (face_cols, face_rows), False)
+    aud_list = []
+    breakpoints = []
+    last_n = 0
     for f in tqdm(list(data_path.iterdir())):
         vid = read_video(f, face_cascade)
         from preprocess_audio import process_audio
         aud = process_audio(f)
-        gen_data(vid, aud, vid_data_list, aud_data_list)
-    vid_data_list = np.stack(vid_data_list, axis=0)
-    aud_data_list = np.concatenate(aud_data_list, axis=0)
-    assert len(vid_data_list) == len(aud_data_list)
-    torch.save((vid_data_list, aud_data_list), save_path)
+        n = min(len(vid), len(aud))
+        vid, aud = vid[:n], aud[:n]
+        for i in vid:
+            vid_writer.write(i)
+        aud_list.append(aud)
+        last_n += n
+        breakpoints.append(last_n)
+    vid_writer.release()
+    aud_list = np.concatenate(aud_list, axis=0)
+    np.save(save_path / 'audio.npy', aud_list)
+    np.save(save_path / 'breakpoints', np.array(breakpoints))
 
 if __name__ == '__main__':
-    process_videos('./data', './processed_data.pt')
+    process_videos('./data', './processed_data')

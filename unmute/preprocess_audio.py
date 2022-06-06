@@ -2,9 +2,9 @@ import numpy as np
 import audio_tools as aud
 import audio_read as ar
 
-SR = 8016
-FPS = 24
-SPF = int(SR/FPS)
+SR = 8000
+from preprocess import fps
+SPF = int(SR/fps)
 NFRAMES = 9 # size of input volume of frames
 MARGIN = int(NFRAMES/2)
 OVERLAP = 1.0/2
