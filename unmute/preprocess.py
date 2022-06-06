@@ -11,7 +11,7 @@ window_size = 9
 channel_cnt = 1 # gray scale
 pool_size = 2
 
-def read_video(path: Path, face_cascade, data_list):
+def read_video(path: Path, face_cascade):
     # See https://docs.opencv.org/4.x/dd/d43/tutorial_py_video_display.html
     cap = cv.VideoCapture(path.as_posix())
     face_list = []
@@ -36,19 +36,31 @@ def read_video(path: Path, face_cascade, data_list):
         face = cv.resize(face, (face_cols, face_rows))
         face_list.append(face)
     face_list = np.stack(face_list, axis=0)
+    return face_list
+
+def gen_data(vid, aud, vid_data_list=[], aud_data_list=[]):
+    n = min(len(vid), len(aud)) # num frames
     margin = window_size // 2
-    for i in range(margin, len(face_list) - 1 - margin):
-        data_list.append(torch.tensor(face_list[i-margin: i+margin+1]))
+    for i in range(margin, n - margin):
+        vid_data_list.append(vid[i-margin: i+margin+1])
+    aud_data_list.append(aud[margin:n-margin])
+    return vid_data_list, aud_data_list
 
 def process_videos(data_path, save_path):
     data_path, save_path = Path(data_path), Path(save_path)
     cascade_file_path = Path(__file__).parent / cascade_file
     face_cascade = cv.CascadeClassifier(cascade_file_path.as_posix())
-    data_list = []
+    vid_data_list = []
+    aud_data_list = []
     for f in tqdm(list(data_path.iterdir())):
-        read_video(f, face_cascade, data_list)
-    print(data_list[0].shape)
-    torch.save(data_list, save_path)
+        vid = read_video(f, face_cascade)
+        from preprocess_audio import process_audio
+        aud = process_audio(f)
+        gen_data(vid, aud, vid_data_list, aud_data_list)
+    vid_data_list = np.stack(vid_data_list, axis=0)
+    aud_data_list = np.concatenate(aud_data_list, axis=0)
+    assert len(vid_data_list) == len(aud_data_list)
+    torch.save((vid_data_list, aud_data_list), save_path)
 
 if __name__ == '__main__':
     process_videos('./data', './processed_data.pt')
