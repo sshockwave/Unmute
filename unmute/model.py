@@ -46,7 +46,7 @@ class UnmuteTranscoder(nn.Module):
             x = conv(x)
             x = self.batch_norm[i](x)
             if i == len(self.conv_layers) - 1:
-                x = F.tanh(x)
+                x = torch.tanh(x)
             else:
                 x = F.leaky_relu(x)
             if i % 2 == 0:
@@ -56,11 +56,12 @@ class UnmuteTranscoder(nn.Module):
                     x = self.dropout1(x)
                 else:
                     x = self.dropout2(x)
-        x = x.flatten()
+        x = x.flatten(start_dim=1)
         for i, dense in enumerate(self.dense_layers):
             x = dense(x)
             if i < len(self.batch_norm2):
                 x = self.batch_norm2[i](x)
             if i == 0:
-                x = F.tanh(x)
+                x = torch.tanh(x)
                 x = self.dropout2(x)
+        return x
