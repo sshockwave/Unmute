@@ -39,8 +39,8 @@ class CCTVDataset(torch.utils.data.Dataset):
         frame_mid = frame_start + margin
         return vid, self.aud_data[frame_mid].astype(np.float32)
 
-def train_model(data_path, save_path, model=None):
-    data_path, save_path = Path(data_path), Path(save_path)
+def train_model(data_path, model_path, model=None):
+    data_path, model_path = Path(data_path), Path(model_path)
 
     if model == None:
         from model import UnmuteTranscoder
@@ -68,8 +68,8 @@ def train_model(data_path, save_path, model=None):
             loss.backward()
             optim.step()
             pbar.set_postfix(loss=loss.item(), epoch=epoch)
-        save_path.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), save_path / 'chkpt.pt')
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(model.state_dict(), model_path)
 
 if __name__ == '__main__':
-    train_model('./processed_data', './trained_weights')
+    train_model('./processed_data', './trained_weights/chkpt.pt')
