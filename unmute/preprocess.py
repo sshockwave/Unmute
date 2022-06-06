@@ -16,7 +16,9 @@ def read_video(path: Path, face_cascade):
     cap = cv.VideoCapture(path.as_posix())
     face_list = []
     pbar = tqdm(total=int(cap.get(cv.CAP_PROP_FRAME_COUNT)))
+    pbar.set_description_str(path.as_posix())
     frame_id = -1
+    first_warning = True
     while True:
         frame_id += 1
         ret, frame = cap.read()
@@ -27,12 +29,21 @@ def read_video(path: Path, face_cascade):
         frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(
             frame_gray,
-            minSize=(70,70),
+            minSize=(150,150),
         )
         if len(faces) != 1:
-            tqdm.write(f'[ERROR] {len(faces)} faces detected in {path} (frame {frame_id})')
+            if len(faces) == 0:
+                tqdm.write(f'[ERROR] no faces found!')
+                raise RuntimeError
+            if first_warning:
+                tqdm.write(f'[WARN] {len(faces)} faces detected in {path} (frame {frame_id}), using the largest')
+                first_warning = False
+        face = None
+        max_w = -1
         for (x, y, w, h) in faces:
-            face = frame_gray[y:y+h, x:x+w]
+            if max_w < w:
+                face = frame_gray[y:y+h, x:x+w]
+                max_w = w
         face = cv.resize(face, (face_cols, face_rows))
         face_list.append(face)
     face_list = np.stack(face_list, axis=0)

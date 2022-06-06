@@ -18,6 +18,9 @@ def process_audio(af):
 	hop_length = int(SPF*OVERLAP)
 	[a,g,e] = aud.lpc_analysis(y,LPC_ORDER,window_step=hop_length,window_size=win_length)
 	lsf = aud.lpc_to_lsf(a)
+	if len(lsf) % 2 != 0:
+		lsf = lsf[:-1]
+		g = g[:-1]
 	lsf_concat = np.concatenate((lsf[::2,:],lsf[1::2,:]),axis=1) # MAGIC NUMBERS for half overlap
 	g_concat = np.concatenate((g[::2,:],g[1::2,:]),axis=1) # MAGIC NUMBERS for half overlap
 	feat = np.concatenate((lsf_concat,g_concat),axis=1)
