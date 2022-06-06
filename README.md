@@ -4,7 +4,7 @@
 
 Our work is reproduction and optimization of Vid2speech: Speech Reconstruction from Silent Video (ICASSP 2017). 
 
-We collected the videos of the famous CCTV channel News Broadcast (新闻联播) in 2022, and edited them to filter out the scenes of only the host. 
+We collected the videos of the famous CCTV channel News Broadcast (新闻联播) in 2022, and edited them to filter out the scenes of only the host. The total length of the videos is nearly 5 hours.
 
 All videos are for learning and research purposes only.
 
