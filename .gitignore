@@ -132,3 +132,4 @@ dmypy.json
 data/
 processed_data/
 trained_weights/
+output/
